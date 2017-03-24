@@ -1,0 +1,65 @@
+<?php
+/**
+ * @file
+ * Allow users to communicate with each other via a socket.io application with SSO information from their account. 
+ */
+
+function elmsln_chat_menu() {
+  $items['message-watchdog'] = array(
+    'title' => 'Log an event to watchdog',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('elmsln_chat_form'),
+    'access arguments' => array('access content'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * elmsln_chat_form()
+ *
+ * A VERY simple form for our menu callback.
+ *
+ */
+function elmsln_chat_form($form , &$form_state) {
+  drupal_add_js(drupal_get_path('module', 'elmsln_chat') . '/elmsln_chat.client.js');
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create a log entry!'),
+  );
+
+  return $form;
+}
+
+/**
+ * Implements hook_nodejs_message_callback().
+ *
+ * Look for the 'nodeToDrupal' as our 'messageType' coming from the node server.
+ * If we've found it, then define a custom handler and pass it back.
+ *
+ */
+function elmsln_chat_nodejs_message_callback($type) {
+  switch($type) {
+    case 'nodeToDrupal':
+      return array('elmsln_chat_handler');
+  }
+  return false;
+}
+
+/**
+ * elmsln_chat_handler()
+ *
+ * A callback handler that was specified in hook_nodejs_message_callback().
+ * If this handler fires it means we have recieved a message of the correct type.
+ * Perform the log to watchdog, and shoot back a responce to node.
+ *
+ */
+function elmsln_chat_handler($message, &$responce) {
+  // Grab our messageBody from the client message and post it to the watchdog.
+  watchdog('elmsln_chat', $message['messageBody'], array(), WATCHDOG_INFO);
+  // Tell node we got the message.
+  $responce = 'Message logged to Watchdog!';
+}
+
